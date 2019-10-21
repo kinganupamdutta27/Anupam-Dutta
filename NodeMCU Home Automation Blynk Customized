@@ -1,0 +1,135 @@
+/*************************************************************
+  Download latest Blynk library here:
+    https://github.com/blynkkk/blynk-library/releases/latest
+
+  Blynk is a platform with iOS and Android apps to control
+  Arduino, Raspberry Pi and the likes over the Internet.
+  You can easily build graphic interfaces for all your
+  projects by simply dragging and dropping widgets.
+
+    Downloads, docs, tutorials: http://www.blynk.cc
+    Sketch generator:           http://examples.blynk.cc
+    Blynk community:            http://community.blynk.cc
+    Follow us:                  http://www.fb.com/blynkapp
+                                http://twitter.com/blynk_app
+    Customized by : Anupam Dutta (kinganupamdutta27)
+
+  Blynk library is licensed under MIT license
+  This example code is in public domain.
+
+ *************************************************************
+  This example runs directly on ESP8266 chip.
+
+  Note: This requires ESP8266 support package:
+    https://github.com/esp8266/Arduino
+
+  Please be sure to select the right ESP8266 module
+  in the Tools -> Board menu!
+
+  Change WiFi ssid, pass, and Blynk auth token to run :)
+  Feel free to apply it to any other example. It's simple!
+ *************************************************************/
+
+/* Comment this out to disable prints and save space */
+#define BLYNK_PRINT Serial
+
+
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+
+// You should get Auth Token in the Blynk App.
+// Go to the Project Settings (nut icon).
+char auth[] = "[Authentication code from blink goes here]";
+
+// Your WiFi credentials.
+// Set password to "" for open networks.
+char ssid[] = "[Wifi name / SSID goes here]"; //WiFi name or SSID of the wifi network which is to be conected
+char pass[] = "[WiFi password]"; // "" for a open wifi network
+const int LDR = A0; // Defining LDR PIN 
+int input_val = 0;  // Varible to store Input values
+int relayInput = 2; // Relay to be used by the Nodemcu automatically based on the input from LDR module & PIR Sencor
+int Status = 13; //LED light for motion status
+int sensor = 5; // PIR Sensor Input at Pin 5 (Pin - D5)
+int vpin6; //virtual pin declare for controlling the Relay manualy from the blink app
+void setup()
+{
+  // Debug console
+  Serial.begin(9600);
+
+  Blynk.begin(auth, ssid, pass);
+   Serial.begin(9600);
+   pinMode(LDR, INPUT);
+   pinMode(relayInput, OUTPUT);
+   pinMode(sensor, INPUT);
+   pinMode(Status, OUTPUT);
+}
+BLYNK_WRITE(V6) //Virtual Pin Configarations
+{
+  int varpinn = param.asInt(); 
+  vpin6 = varpinn;
+  Serial.print("VAR PIN 6 : " );
+  Serial.println(varpinn);
+}
+void loop()
+{
+  Blynk.run();
+  input_val = analogRead(LDR);      // Reading Input from the LDR MODULE
+   Serial.print("LDR value is : " ); // Print the String - "LDR value is : "                        
+   Serial.println(input_val);        // Writing input on serial monitor.
+   delay(1000);
+    long state = digitalRead(sensor); //reading the value from the PIR Sensor 
+    if(input_val > 950 && state == HIGH) // WHEN THIS CONDITION WILL EXICUTE IT MEANS "Motion detected! Environment Light OFF" & IT WILL TURN ON STATUS LED
+      {
+      digitalWrite (Status, HIGH);
+      Serial.println("Motion detected! Environment Light OFF");
+      delay(1000);
+      }
+    else if(input_val < 950 && state == HIGH) //WHEN THIS CONDITION WILL EXICUTE IT MEANS "Motion detected! Environment light ON" & IT WILL TURN ON STATUS LED
+      {
+      digitalWrite (Status, HIGH);
+      Serial.println("Motion detected! Environment light ON");
+      delay(1000);
+      }
+    else if(input_val < 950 && state == LOW) //WHEN THIS CONDITION WILL EXICUTE IT MEANS "Motion absent! Environment light ON" & IT WILL TURN OFF STATUS LED
+      {
+      digitalWrite (Status, LOW);
+      Serial.println("Motion absent! Environment light ON");
+      delay(1000);
+      }
+     else if(input_val > 950 && state == LOW)////WHEN THIS CONDITION WILL EXICUTE IT MEANS "Motion absent! Environment light OFF" & IT WILL TURN OFF STATUS LED
+      {
+      digitalWrite (Status, LOW);
+      Serial.println("Motion absent! Environment light OFF");
+      delay(1000);
+      }
+    if(vpin6 == 0) //IF VALUE OF vpin6 is 0 then we can control the relay via Blink App
+        {
+          Blynk.run();
+        }
+    else if(vpin6 == 1) ///IF VALUE OF vpin6 is 1 then the relay will automatically controlled by the NodeMCU by values based on PIR SENSOR and LDR SENSOR
+        {
+            if(input_val < 1023 && state == HIGH)
+              {
+                digitalWrite(relayInput, HIGH);       
+              }
+            else if(input_val < 1023 && state == LOW)
+              {
+                digitalWrite(relayInput, HIGH);
+              }
+            else if(input_val > 950 && state == HIGH)
+              {
+                digitalWrite(relayInput, LOW);
+                Serial.println("LIGHT ON");
+              }
+            else
+              {
+                digitalWrite(relayInput, HIGH);
+              }
+        }
+     else
+        {
+            digitalWrite(relayInput, HIGH);
+        }
+}
+
+//Customized by : Anupam Dutta (kinganupamdutta27)
